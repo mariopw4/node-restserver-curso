@@ -8,12 +8,12 @@ let Producto = require('../models/producto');
 //==============================
 // Obtener todos los productos
 //==============================
-app.get('/productos', (req, res) => {
+app.get('/productos', verificaToken, (req, res) => {
     //populate
     //paginado
     let desde = Number(req.query.desde) || 0;
     let limite = Number(req.query.limite) || 5;
-    Producto.find({})
+    Producto.find({ disponible: true })
         .skip(desde)
         .limit(limite)
         .populate('usuario', 'nombre email')
@@ -37,7 +37,7 @@ app.get('/productos', (req, res) => {
 //==============================
 // Obtener un producto por id
 //==============================
-app.get('/productos/:id', (req, res) => {
+app.get('/productos/:id', verificaToken, (req, res) => {
     //populate
     let id = req.params.id;
     Producto.findById(id)
@@ -98,6 +98,39 @@ app.post('/productos', verificaToken, (req, res) => {
             producto
         });
     });
+});
+
+//==============================
+// Buscar productos
+//==============================
+app.get('/productos/buscar/:termino', verificaToken, (req, res) => {
+    let termino = req.params.termino;
+    let regex = new RegExp(termino, 'i');
+    Producto.find({ nombre: regex })
+        .populate('usuario', 'nombre email')
+        .populate('categoria', 'descripcion')
+        .exec((err, producto) => {
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    err
+                });
+            }
+
+            if (!producto) {
+                return res.status(400).json({
+                    ok: false,
+                    err: {
+                        message: 'No existe producto con ese ID'
+                    }
+                });
+            }
+
+            res.json({
+                ok: true,
+                producto
+            });
+        });
 });
 
 
